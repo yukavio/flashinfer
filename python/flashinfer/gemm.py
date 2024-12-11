@@ -15,7 +15,7 @@ limitations under the License.
 """
 
 from types import SimpleNamespace
-from typing import Optional
+from typing import Optional, List
 
 import torch
 import triton
@@ -49,6 +49,7 @@ def get_gemm_module():
                     FLASHINFER_CSRC_DIR / "bmm_fp8.cu",
                     FLASHINFER_CSRC_DIR / "group_gemm.cu",
                     FLASHINFER_CSRC_DIR / "flashinfer_gemm_ops.cu",
+                    FLASHINFER_CSRC_DIR / "gemm_fuse_broadcast.cu"
                 ],
             )
 
@@ -120,6 +121,19 @@ def get_gemm_module():
                     get_cuda_stream(device),
                 )
 
+        @register_custom_op("flashinfer::cutlass_gemm_broadcast",  mutates_args=("c"))
+        def cutlass_gemm_broadcast(
+            a: torch.Tensor,
+            b: torch.Tensor,
+            c: List[torch.Tensor],
+            rank: int,
+        ) -> None:
+            with a.device as device:
+                module.cutlass_gemm_broadcast(
+                    a, b, c, rank,
+                    get_cuda_stream(device),
+                )
+
         @register_fake_op("flashinfer::cutlass_segment_gemm")
         def _fake_cutlass_segment_gemm(
             workspace_buffer: torch.Tensor,
@@ -140,6 +154,7 @@ def get_gemm_module():
         _gemm_module = SimpleNamespace(
             bmm_fp8=bmm_fp8,
             cutlass_segment_gemm=cutlass_segment_gemm,
+            cutlass_gemm_broadcast=cutlass_gemm_broadcast,
         )
 
     return _gemm_module

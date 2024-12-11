@@ -65,6 +65,9 @@ void CutlassSegmentGEMM(at::Tensor workspace_buffer, at::Tensor all_problems, at
                         at::Tensor y_ld, at::Tensor empty_x_data, bool weight_column_major,
                         int64_t cuda_stream);
 
+void CutlassGemmFuseBroadcast(at::Tensor A, at::Tensor B, std::vector<at::Tensor> C, int rank,
+      int64_t cuda_stream);
+
 //========== norm ==========
 
 void rmsnorm(at::Tensor& out, at::Tensor& input, at::Tensor& weight, double eps,
